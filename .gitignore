@@ -3,3 +3,4 @@ stories/*
 .venv
 __pycache__
 *.qzl
+specificvars.py
