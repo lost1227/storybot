@@ -16,6 +16,3 @@ class Anchor(GameInterface):
         stdin.flush()
         frotz._clear_until_prompt('> >')
         return intro
-
-    def get_loc(self):
-        return self.loc

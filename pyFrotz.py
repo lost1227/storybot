@@ -6,16 +6,19 @@ from abc import ABC, abstractmethod
 
 class GameInterface(ABC):
     
-    def __init__(self, game_loc):
+    def __init__(self, game_loc, savegame):
         self.loc = game_loc
+        self.savegame = savegame
 
     @abstractmethod
     def get_intro(self, frotz):
         pass
-    
-    @abstractmethod
+
     def get_loc(self):
-        pass
+        return self.loc
+    
+    def get_savegame(self):
+        return self.savegame
     
 
 class Frotz(object):

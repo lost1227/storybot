@@ -9,8 +9,8 @@ class Coordinator:
     def __init__(self, msgqueue):
         self.state = 'standby'
         self.msgqueue = msgqueue
-        self.game = games.Anchor('stories/anchor.z8')
-        self.savegame = 'anchor.qzl'
+        self.game = games.Anchor('stories/anchor.z8', 'anchor.qzl')
+        self.savegame = self.game.get_savegame()
         self.last_ts = {}
         self.timeout = 1 * 60
 
