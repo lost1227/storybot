@@ -50,21 +50,17 @@ class Frotz(object):
             Save game state.
         """
         filename = filename or self.save_file
-        self.do_command('save')
-        time.sleep(0.5)
+        self._frotz_write('save')
         self._clear_until_prompt(':')
-        self.do_command(filename)  # Accept default savegame
-        time.sleep(0.5)
+        self._frotz_write(filename)  # Accept default savegame
         # Check if game returns Ok or query to overwrite
         while True:
             char = self.frotz.stdout.read(1)
-            time.sleep(0.01)
             if char == b'.':  # Ok. (everything is done)
                 break  # The save is complete
             if char == b'?':  # Indicates an overwrite query
-                self.do_command('y')  # reply yes
+                self._frotz_write('y')  # reply yes
 
-        time.sleep(0.5)
         self._clear_until_prompt()
 
     def restore(self, filename=None):
@@ -72,11 +68,9 @@ class Frotz(object):
             Restore saved game.
         """
         filename = filename or self.save_file
-        self.do_command('restore')
-        time.sleep(0.5)
+        self._frotz_write('restore')
         self._clear_until_prompt(':')
-        self.do_command(filename)  # Accept default savegame
-        time.sleep(0.5)
+        self._frotz_write(filename)  # Accept default savegame
         self._clear_until_prompt()
 
     def _clear_until_prompt(self, prompt=None):
@@ -93,11 +87,14 @@ class Frotz(object):
 
     def do_command(self, action):
         """ Write a command to the interpreter. """
-        self.frotz.stdin.write(action.encode() + b'\n')
-        self.frotz.stdin.flush()
+        self._frotz_write(action)
         return self._frotz_read()
 
-    def _frotz_read(self, parse_room=True, stop_at=['> >']):
+    def _frotz_write(self, data):
+        self.frotz.stdin.write(data.encode() + b'\n')
+        self.frotz.stdin.flush()
+
+    def _frotz_read(self, parse_room=True, stop_at=['> >','\n)',')    >']):
         """
             Read from frotz interpreter process.
             Returns tuple with Room name and description.
