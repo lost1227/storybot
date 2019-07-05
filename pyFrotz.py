@@ -1,14 +1,15 @@
 import time
 import subprocess
+import savegames
 from os.path import exists, dirname, join
 
 from abc import ABC, abstractmethod
 
 class GameInterface(ABC):
     
-    def __init__(self, game_loc, savegame):
+    def __init__(self, game_loc, save_path, save_basename):
         self.loc = game_loc
-        self.savegame = savegame
+        self.savegame = savegames.Savegames(save_path, save_basename)
 
     @abstractmethod
     def get_intro(self, frotz):
@@ -129,6 +130,15 @@ class Frotz(object):
 
     def get_intro(self):
         return self.data.get_intro(self)
+    
+    def quit_frotz(self):
+        self._frotz_write('quit')
+        self._clear_until_prompt('?')
+        self._frotz_write('y')
+        time.sleep(0.2)
+        if not self.game_ended():
+            self.frotz.kill()
+
 
     def play_loop(self):
         #print(self.get_intro())

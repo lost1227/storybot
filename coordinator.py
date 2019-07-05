@@ -9,8 +9,7 @@ class Coordinator:
     def __init__(self, msgqueue):
         self.state = 'standby'
         self.msgqueue = msgqueue
-        self.game = games.Anchor('stories/anchor.z8', 'anchor.qzl')
-        self.savegame = self.game.get_savegame()
+        self.game = games.Anchor('stories/anchor.z8', 'saves', 'anchor')
         self.last_ts = {}
         self.timeout = 1 * 60
 
@@ -44,6 +43,10 @@ class Coordinator:
 
         accept_dubious = channel in self.last_ts and self.last_ts[channel] is not None and time() - self.last_ts[channel] < self.timeout
 
+        if not self.msgqueue.empty():
+            # Ignore user messages until all the information has been given
+            return
+
         if self.state == 'standby':
             if text_dubious:
                 return
@@ -56,7 +59,9 @@ class Coordinator:
 
                 self.state = 'confirm_restore'
 
-                if os.path.exists(self.savegame) and os.path.isfile(self.savegame):
+                savepath = self.game.savegame.get_last_save()
+
+                if savepath is not None:
                     self.msgqueue.put({'channel':channel, 'text':"Should I continue from where I last stopped?"})
                 else:
                     msg['text'] = 'no'
@@ -75,7 +80,7 @@ class Coordinator:
             self.start_game()
             intro = self.frotz.get_intro()
             if 'yes' in text.lower():
-                self.frotz.restore(self.savegame)
+                self.frotz.restore(self.game.savegame.get_last_save())
             else:
                 intro = intro.split('\n\n')
                 for part in intro:
@@ -88,15 +93,26 @@ class Coordinator:
             if text.lower().startswith("help") or text.lower().startswith("about"):
                 return
             if text.lower().startswith("save"):
-                self.frotz.save(self.savegame)
+                self.frotz.save(self.game.savegame.get_next_save())
                 self.msgqueue.put({'channel':channel, 'text':'Story location saved'})
                 return
-            if text.lower().startswith("restore"):
-                self.frotz.restore(self.savegame)
+            if text.lower().startswith("restore") or text.lower().startswith("load"):
+                self.frotz.restore(self.game.savegame.get_last_save())
                 text = 'look'
+            if text.lower().startswith("quit"):
+                self.state = 'confirm_quit'
+                self.msgqueue.put({'channel':channel, 'text':'Would you like me to save our progress?'})
+                return
             room, description = self.frotz.do_command(text)
             if text_dubious and description.lower().strip() == "that's not a verb i recognise.":
                 self.last_ts[channel] = None
                 return
             self.msgqueue.put({'channel':channel, 'blocks':self.format_room_message(room, description)})
+        elif self.state == 'confirm_quit':
+            self.state = 'standby'
+            if 'yes' in text.lower():
+                self.frotz.save(self.game.savegame.get_next_save())
+            self.frotz.quit_frotz()
+            self.msgqueue.put({'channel':channel, 'text':'Story closed, for now'})
+
         self.last_ts[channel] = time()
